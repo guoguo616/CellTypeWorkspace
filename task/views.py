@@ -5,19 +5,20 @@ from rest_framework.views import APIView
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import viewsets
-import os,traceback
+import os, traceback
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 # Create your views here.
-import time,random,json
+import time, random, json
 from cell_type_workspace_api import settings_local as local_settings
 from utils import slurm_api
 from django.http import FileResponse
 import pandas as pd
-import utils.analysis 
+import utils.analysis
 from utils.page import paginate_dataframe
-from utils.fileprocess import get_gene_list,get_cluster_list
+from utils.fileprocess import get_gene_list, get_cluster_list
 import pickle
+
 
 class taskViewSet(viewsets.ModelViewSet):
     queryset = tasks.objects.order_by('id')
@@ -45,24 +46,24 @@ def createtask(request):
     - parameters
     """
     # create user task folder and save the file
-    usertask_dir = str(int(time.time()))+'_' + str(random.randint(1000, 9999))
-    userpath = local_settings.USERTASKPATH+usertask_dir
+    usertask_dir = str(int(time.time())) + '_' + str(random.randint(1000, 9999))
+    userpath = local_settings.USERTASKPATH + usertask_dir
     uploadfilepath = userpath + '/upload/'
     os.makedirs(uploadfilepath, exist_ok=False)
     file = request.FILES['submitfile']
-    default_storage.save(uploadfilepath+'input.h5ad', ContentFile(file.read()))
+    default_storage.save(uploadfilepath + 'input.h5ad', ContentFile(file.read()))
 
     # get parameters from request
-    parameters_string=request.data['parameters']
+    parameters_string = request.data['parameters']
     print(parameters_string)
     parameters_dict = json.loads(parameters_string)
 
     # create task object
     res = {}
     newtask = tasks.objects.create(
-            name=request.data['taskname'], user=request.data['userid'], userpath=usertask_dir,
-            task_type=request.data['tasktype'], status='Created',modulelist=request.data['modulename'])
-    
+        name=request.data['taskname'], user=request.data['userid'], userpath=usertask_dir,
+        task_type=request.data['tasktype'], status='Created', modulelist=request.data['modulename'])
+
     # create module object and run the task
     if newtask.task_type == 'module':
         try:
@@ -70,8 +71,9 @@ def createtask(request):
             def get_class_from_module(module, class_name):
                 # 使用 getattr() 尝试从模块中获取类对象,如果类不存在，则返回 None
                 return getattr(module, class_name, None)
-            cls = get_class_from_module(utils.analysis,request.data['modulename'])
-            
+
+            cls = get_class_from_module(utils.analysis, request.data['modulename'])
+
             if cls is None:
                 res['status'] = 'Failed'
                 newtask.status = 'Failed'
@@ -79,13 +81,15 @@ def createtask(request):
                 raise ValueError('module not found')
 
             else:
-                newmodule = cls(request.data['taskname'],usertask_dir,parameters_dict)
+                newmodule = cls(request.data['taskname'], usertask_dir, parameters_dict)
                 job_id = newmodule.process()
 
-                taskdetailjson=[{'modulename':request.data['modulename'],'parameters_dict': parameters_dict, 'job_id': job_id, 'status': 'Created'}]
-                with open(userpath+'/'+'taskdetail.json', 'w') as f:
+                taskdetailjson = [
+                    {'modulename': request.data['modulename'], 'parameters_dict': parameters_dict, 'job_id': job_id,
+                     'status': 'Created'}]
+                with open(userpath + '/' + 'taskdetail.json', 'w') as f:
                     json.dump(taskdetailjson, f, ensure_ascii=False, indent=4)
-                with open(userpath+'/moduleobject.pkl', 'wb') as f:
+                with open(userpath + '/moduleobject.pkl', 'wb') as f:
                     pickle.dump(newmodule, f)
                 newtask.status = 'Running'
                 res['status'] = 'Success'
@@ -107,24 +111,27 @@ def viewtasklist(request):
     serializer = taskSerializer(taskslist, many=True)
     return Response({'results': serializer.data})
 
+
 @api_view(['GET'])
 def taskdetailview(request):
     taskid = request.query_params.dict()['taskid']
     taskobject = tasks.objects.filter(id=taskid)
     serializer = taskSerializer(taskobject, many=True)
-    taskdata=serializer.data[0]
-    taskdata['inputpath'] =   local_settings.FILEAPI+taskdata['userpath']+ '/upload/input.csv'
-    taskdata['outputpath'] =  {'metadata':local_settings.FILEAPI+taskdata['userpath']+ '/result/scquery/sc_output_meta.csv',\
-                            'expression':local_settings.FILEAPI+taskdata['userpath']+ '/result/scquery/sc_output_expression.csv'}
+    taskdata = serializer.data[0]
+    taskdata['inputpath'] = local_settings.FILEAPI + taskdata['userpath'] + '/upload/input.csv'
+    taskdata['outputpath'] = {
+        'metadata': local_settings.FILEAPI + taskdata['userpath'] + '/result/scquery/sc_output_meta.csv', \
+        'expression': local_settings.FILEAPI + taskdata['userpath'] + '/result/scquery/sc_output_expression.csv'}
     return Response({'results': taskdata})
+
 
 @api_view(['GET'])
 def getoutputfile(request, path):
-    file_path = local_settings.USERTASKPATH  + path
+    file_path = local_settings.USERTASKPATH + path
     file = open(file_path, 'rb')
     response = FileResponse(file)
     filename = file.name.split('/')[-1]
-    response['Content-Disposition'] = "attachment; filename="+filename
+    response['Content-Disposition'] = "attachment; filename=" + filename
     response['Content-Type'] = 'text/plain'
     return response
 
@@ -144,8 +151,7 @@ def taskresultview(request):
     taskobject = tasks.objects.get(id=taskid)
     objectpath = local_settings.USERTASKPATH + taskobject.userpath + '/moduleobject.pkl'
     with open(objectpath, 'rb') as f:
-        #载入模块对象
+        # 载入模块对象
         module = pickle.load(f)
-    res=module.getresult(query_params)
+    res = module.getresult(query_params)
     return Response(res)
-
