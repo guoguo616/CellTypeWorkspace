@@ -1,0 +1,14 @@
+django
+djangorestframework
+django-crontab
+django-extensions
+django-filter
+slurmpy
+pandas
+psycopg2
+h5py
+scipy
+scanpy
+squidpy
+anndata
+openpyxl

@@ -1,3 +1,4 @@
 *.pyc
-workspace
+workspace/user_data
+workspace/log
 .idea

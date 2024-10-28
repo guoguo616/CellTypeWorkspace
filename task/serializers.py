@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from task.models import tasks
+from task.models import Task
 
 
     # name = models.CharField(max_length=300, blank=True, null=True)
@@ -15,5 +15,5 @@ from task.models import tasks
 
 class taskSerializer(serializers.ModelSerializer):
     class Meta:
-        model = tasks
+        model = Task
         fields = ['id','name', 'user', 'userpath', 'task_type', 'modulelist', 'status', 'created_at']

@@ -28,13 +28,13 @@ router.register('task', taskViewSet)
 urlpatterns = [
     path('', include(router.urls)),
     path('api/', include('rest_framework.urls')),
-    path('tasks/detail/', task.views.viewtask),
-    path('tasks/list/', task.views.viewtasklist),
+    path('tasks/detail/', task.views.task_detail_view),
+    path('tasks/list/', task.views.task_list_view),
     path('tasks/createtask/', task.views.createtask),
     #getoutputfile
     path('tasks/getoutputfile/<path:path>/', task.views.getoutputfile),
     #taskdetailview
-    path('tasks/taskdetailview/', task.views.taskdetailview),
+    path('tasks/taskdetailview/', task.views.task_detail_view),
     #taskresultview
     path('tasks/taskresultview/', task.views.taskresultview),
 ]

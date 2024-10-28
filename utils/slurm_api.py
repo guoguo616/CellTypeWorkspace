@@ -58,7 +58,6 @@ def get_job_status(job_id):
 
 def submit_job(shell_script, script_arguments=None, dependency_job_ids=None):
 
-
     sbatch_command = ["sbatch"]
     if dependency_job_ids is not None:
         dependencies_str = ":".join(str(job_id)

@@ -1,7 +1,7 @@
 from django.db import models
 
 
-class tasks(models.Model):
+class Task(models.Model):
     name = models.CharField(max_length=300, blank=True, null=True)
     user = models.CharField(max_length=300, blank=True, null=True)
     userpath = models.CharField(max_length=200, blank=True, null=True)

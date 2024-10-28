@@ -1,8 +1,11 @@
-from utils import slurm_api
-from cell_type_workspace_api import settings_local as local_settings
 import pandas as pd
-from utils.page import paginate_dataframe
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+
+from cell_type_workspace_api import settings_local as local_settings
+from utils import slurm_api
 from utils.fileprocess import get_gene_list, get_cluster_list
+from utils.page import paginate_dataframe
 
 
 # define a module class in analysis.py
@@ -13,7 +16,7 @@ class Module:
         self.name = name
         self.job_id = None
         self.dependencies = []
-        self.path = local_settings.USERTASKPATH + userpath
+        self.path = local_settings.USER_TASK_PATH / userpath
         self.status = 'Created'
         self.shell_script = None
         self.script_arguments = None
@@ -41,35 +44,49 @@ class Module:
         else:
             dependencies_jobs = [dependency.job_id for dependency in self.dependencies if dependency.job_id is not None]
             self.job_id = slurm_api.submit_job(self.shell_script, script_arguments=self.script_arguments,
-                                               dependencies_job_ids=dependencies_jobs)
+                                               dependency_job_ids=dependencies_jobs)
         self.status = 'Running'
         return self.job_id
 
+    def get_result(self):
+        raise NotImplementedError("Method get_result is not implemented.")
 
-class Scquery_old(Module):
+
+class AKNOOModule(Module):
     def __init__(self, name, path, params):
         super().__init__(name, path)
-        inputfilepath = local_settings.USERTASKPATH + path + '/upload/query.csv'
-        outputdir = local_settings.USERTASKPATH + path + '/result/scquery'
-        paramk = str(params['k'])
-        self.script_arguments = [inputfilepath, paramk, outputdir]
-        # /home/platform/project/scdb_platform/cell_type_workspace_api/workspace/module/sc_query_old
-        self.shell_script = local_settings.SCDB_MODULE + 'sc_query_old/run.sh'
+        input_file_path = self.path / 'upload/input.zip'
+        output_dir = self.path / 'result/'
+        default_storage.save((output_dir / 'selected_genes.txt').relative_to(local_settings.USER_TASK_PATH),
+                             ContentFile(params['selected_genes']))
+        self.script_arguments = [str(input_file_path), str(output_dir)]
+        self.shell_script = local_settings.WORKSPACE_MODULE / 'aknno.sh'
+
+    def getresult(self, query_params):
+        result_type = query_params.get('resulttype')
+        result = None
+        if result_type == 'gexf':
+            with open(self.path / 'result/network.gexf', 'r') as f:
+                result = f.read()
+        elif result_type == 'cell_marker_heatmap':
+            with open(self.path / 'result/cell_marker_heatmap_options.json', 'r') as f:
+                result = f.read()
+        return {'results': {'type': result_type, 'data': result}}
 
 
 class Scquery(Module):
     def __init__(self, name, path, params):
         super().__init__(name, path)
-        inputfilepath = local_settings.USERTASKPATH + path + '/upload/input.h5ad'
-        outputdir = local_settings.USERTASKPATH + path + '/result/'
+        inputfilepath = local_settings.USER_TASK_PATH / path / 'upload/input.h5ad'
+        outputdir = local_settings.USER_TASK_PATH / path / 'result/'
         paramk = str(params['k'])
         projectname = params['projectname']
         self.script_arguments = [inputfilepath, outputdir, projectname, paramk]
         # /home/platform/project/scdb_platform/cell_type_workspace_api/workspace/module/sc_query_old
-        self.shell_script = local_settings.SCDB_MODULE + 'sc_query/run.sh'
+        self.shell_script = local_settings.WORKSPACE_MODULE / 'sc_query/run.sh'
 
     def getmetaresult(self, page, pagesize):
-        metadatafile = self.path + f'/result/meta/{self.projectname}_meta_data.txt'
+        metadatafile = self.path / f'result/meta/{self.projectname}_meta_data.txt'
         metadata = pd.read_csv(metadatafile, sep='\t', index_col=False)
         count = metadata.shape[0]
         rename_dict = {'index': 'Cell_id',
@@ -82,7 +99,7 @@ class Scquery(Module):
         return res
 
     def getumapresult(self):
-        umapfile = self.path + f'/result/umap/{self.projectname}_umap_data.txt'
+        umapfile = self.path / f'result/umap/{self.projectname}_umap_data.txt'
         umappddata = pd.read_csv(umapfile, sep='\t', index_col=False)
         rename_dict = {'Unnamed: 0': 'Cell_id', }
         umappddata.rename(columns=rename_dict, inplace=True)
@@ -93,7 +110,7 @@ class Scquery(Module):
         genelist, gene_path_dict = get_gene_list(self.path + '/result/batch_effect/batch_effected_split')
         geneoption = [{'value': gene, 'label': gene} for gene in genelist]
         gene = gene if gene is not None else genelist[int(compid)]
-        path = self.path + '/result/batch_effect/batch_effected_split/' + gene_path_dict[gene]
+        path = self.path / 'result/batch_effect/batch_effected_split/' + gene_path_dict[gene]
         batcheffect_data = pd.read_csv(path, sep='\t', index_col=False, skiprows=1, header=None)
         batcheffect_data.rename(columns={0: 'Cell_id', 1: 'Gene'}, inplace=True)
         res = {'path': path, 'results': batcheffect_data.to_dict(orient='records'), 'geneoption': geneoption,
@@ -105,8 +122,8 @@ class Scquery(Module):
         cluster_output_list, outputdict = get_cluster_list(self.path + '/result/casuality/output')
         clusteroption = [{'value': cluster, 'label': "cluster_" + cluster} for cluster in cluster_input_list]
         cluster = cluster if cluster is not None else cluster_output_list[0]
-        inputpath = self.path + '/result/casuality/input/' + inputdict[cluster]
-        outputpath = self.path + '/result/casuality/output/' + outputdict[cluster]
+        inputpath = self.path / 'result/casuality/input/' + inputdict[cluster]
+        outputpath = self.path / 'result/casuality/output/' + outputdict[cluster]
         inputcasuality_data = pd.read_csv(inputpath, sep=',', index_col=False)
         outputcasuality_data = pd.read_csv(outputpath, sep=',', index_col=False)
         rename_dict = {'Unnamed: 0': 'gene'}
@@ -128,51 +145,6 @@ class Scquery(Module):
         elif resulttype == 'casuality':
             return self.getcasuality(query_params.get('cluster'))
         else:
-            expressionfile = self.path + '/result/scquery/sc_output_expression.csv'
+            expressionfile = self.path / 'result/scquery/sc_output_expression.csv'
             expression = pd.read_csv(expressionfile, index_col=0)
             return {'results': expression.to_dict(orient='records')}
-# class Pipeline:
-#     def __init__(self):
-#         self.modules = []
-
-#     def add_module(self, module):
-#         self.modules.append(module)
-
-#     def execute(self):
-#         completed = set()
-
-#         def execute_module(module):
-#             for dependency in module.dependencies:
-#                 if dependency not in completed:
-#                     execute_module(dependency)
-#             module.process()
-#             completed.add(module)
-
-#         for module in self.modules:
-#             if module not in completed:
-#                 execute_module(module)
-
-
-# # 使用示例
-# if __name__ == "__main__":
-#     # 创建模块
-#     module_a = Module('A')
-#     module_b = Module('B')
-#     module_c = Module('C')
-#     module_d = Module('D')
-
-#     # 添加依赖关系
-#     module_b.add_dependency(module_a)
-#     module_c.add_dependency(module_b)
-#     module_d.add_dependency(module_b)
-#     module_d.add_dependency(module_c)
-
-#     # 创建管道并添加模块
-#     pipeline = Pipeline()
-#     pipeline.add_module(module_d)
-#     pipeline.add_module(module_c)
-#     pipeline.add_module(module_b)
-#     pipeline.add_module(module_a)
-
-#     # 执行管道
-#     pipeline.execute()

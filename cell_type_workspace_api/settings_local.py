@@ -8,15 +8,15 @@ DATABASES = {
     'USER': 'cell-type-workspace',
     'PASSWORD': 'cell-type-workspace',
     'HOST': 'localhost',
-    'PORT': '54321',
+    'PORT': '5432',
 }
 
 APIURL = 'https://scdbapi.deepomics.org/'
 FILEAPI = 'https://scdbapi.deepomics.org/tasks/getoutputfile/'
 
-USERTASKPATH = 'workspace/user_data/'
-SCDB_MODULE = BASE_DIR / 'workspace/module/'
-SCQUERY_SCRIPT = BASE_DIR / 'workspace/module/sc_query_old/run.sh'
+USER_TASK_PATH = BASE_DIR / 'workspace/user_data/'
+WORKSPACE_MODULE = BASE_DIR / 'workspace/module/'
+# SCQUERY_SCRIPT = BASE_DIR / 'workspace/module/sc_query_old/run.sh'
 
 # ABSUSERTASKPATH = '/home/platform/phage_db/phage_api/workspace/user_task'
 # PHAGEFASTA = '/home/platform/phage_db/phage_data/data/phage_sequence/phage_fasta/'
