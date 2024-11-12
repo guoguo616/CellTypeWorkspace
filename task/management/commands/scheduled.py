@@ -22,9 +22,8 @@ class Command(BaseCommand):
                     with open(objectpath, 'rb') as f:
                         taskobject = pickle.load(f)
 
-                    if taskobject.check_status() != 'COMPLETED':
-                        continue
-                    else:
+                    task_status = taskobject.check_status()
+                    if task_status == 'COMPLETED':
                         task.status = 'Completed'
                         task.save()
                         with open(local_settings.USER_TASK_PATH / task.userpath / 'taskdetail.json', 'r') as f:
@@ -34,6 +33,11 @@ class Command(BaseCommand):
                             json.dump(jsondata, f, ensure_ascii=False, indent=4)
                         with open(local_settings.USER_TASK_PATH / task.userpath / 'moduleobject.pkl', 'wb') as f:
                             pickle.dump(taskobject, f)
+                    elif task_status == 'FAILED':
+                        task.status = 'Failed'
+                        task.save()
+                    else:
+                        continue
             current_time = datetime.datetime.now()
             with open(BASE_DIR / 'workspace/log/update.txt', 'a+') as f:
                 f.write('exec update start  ' + str(current_time) + "\n")

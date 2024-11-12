@@ -50,7 +50,7 @@ def createtask(request):
     upload_file_path = user_path / 'upload/'
     os.makedirs(upload_file_path, exist_ok=False)
     file = request.FILES['submitfile']
-    default_storage.save((user_path / 'input.zip').relative_to(local_settings.USER_TASK_PATH), ContentFile(file.read()))
+    default_storage.save((upload_file_path / 'input.zip').relative_to(local_settings.USER_TASK_PATH), ContentFile(file.read()))
 
     # get parameters from request
     parameters_string = request.data['parameters']
