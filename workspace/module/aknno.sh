@@ -16,14 +16,15 @@ export PYTHONPATH=/data2/platform/cell_type_workspace/venv/lib/python3.9/site-pa
 
 
 # Check if the correct number of arguments are provided
-if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 inputfile outputdir"
+if [ "$#" -ne 4 ]; then
+    echo "Usage: $0 inputfile outputdir species tissue_class"
     exit 1
 fi
 
 inputfile=$1
 outputdir=$2
-
+species=$3
+tissue_class=$4
 
 mkdir -p $outputdir
 
@@ -48,7 +49,7 @@ fi
 # Call the R script with the provided arguments
 echo '########################preprocessing sc data########################'
 echo 'running R script to find marker genes and python script to filter adata'
-Rscript /home/platform/project/cell_type_workspace/cell_type_workspace_api/workspace/module/aknno.R "$outputdir/visium_data" "$outputdir"
+Rscript /home/platform/project/cell_type_workspace/cell_type_workspace_api/workspace/module/aknno.R "$outputdir/visium_data" "$outputdir" "$species" "$tissue_class"
 if [ $? -ne 0 ]; then
     echo "Failed to run the aknno.R"
     exit 1
@@ -66,13 +67,13 @@ if [ $? -ne 0 ]; then
 fi
 
 # Call python script to generate cell_marker json
-/data2/platform/cell_type_workspace/venv/bin/python3 \
-  /home/platform/project/cell_type_workspace/cell_type_workspace_api/workspace/module/cell_marker.py \
-  --gene_names_file "$outputdir/selected_genes.txt" \
-  --output_path "$outputdir"
-if [ $? -ne 0 ]; then
-    echo "Failed to run the cell_marker.py"
-    exit 1
-fi
+#/data2/platform/cell_type_workspace/venv/bin/python3 \
+#  /home/platform/project/cell_type_workspace/cell_type_workspace_api/workspace/module/cell_marker.py \
+#  --gene_names_file "$outputdir/selected_genes.txt" \
+#  --output_path "$outputdir"
+#if [ $? -ne 0 ]; then
+#    echo "Failed to run the cell_marker.py"
+#    exit 1
+#fi
 
 echo 'processing done'

@@ -59,7 +59,8 @@ class AKNOOModule(Module):
         output_dir = self.path / 'result/'
         default_storage.save((output_dir / 'selected_genes.txt').relative_to(local_settings.USER_TASK_PATH),
                              ContentFile(params['selected_genes']))
-        self.script_arguments = [str(input_file_path), str(output_dir)]
+        self.script_arguments = [str(input_file_path), str(output_dir), params.get('species', 'Mouse'),
+                                 params.get('tissue_class', 'Brain')]
         self.shell_script = local_settings.WORKSPACE_MODULE / 'aknno.sh'
 
     def getresult(self, query_params):
