@@ -12,6 +12,7 @@ module load Python/3.9.6
 module load R/4.2.0
 echo 'modules loaded'
 
+SCRIPT_DIR=$(dirname "$0")
 export PYTHONPATH=/data2/platform/cell_type_workspace/venv/lib/python3.9/site-packages:$PYTHONPATH
 
 
@@ -28,8 +29,7 @@ tissue_class=$4
 
 mkdir -p $outputdir
 
-# unzip the input file
-echo '########################unzipping input file########################'
+echo '######################## Unzipping input file ########################'
 unzip $inputfile -d $outputdir/visium_data
 if [ $? -ne 0 ]; then
     echo "Failed to unzip the input file"
@@ -46,34 +46,13 @@ if [ $(echo "$extracted_items" | wc -w) -eq 1 ] && [ -d "$extracted_items" ]; th
     rmdir $extracted_items
 fi
 
-# Call the R script with the provided arguments
-echo '########################preprocessing sc data########################'
-echo 'running R script to find marker genes and python script to filter adata'
-Rscript /home/platform/project/cell_type_workspace/cell_type_workspace_api/workspace/module/aknno.R "$outputdir/visium_data" "$outputdir" "$species" "$tissue_class"
+echo '######################## Clustering ########################'
+Rscript /home/platform/project/cell_type_workspace/cell_type_workspace_api/workspace/module/aknno.R "$outputdir/visium_data" "$outputdir"
 if [ $? -ne 0 ]; then
     echo "Failed to run the aknno.R"
     exit 1
 fi
 
-# Call python script to generate gexf
-echo '########################generating gexf########################'
-/data2/platform/cell_type_workspace/venv/bin/python3 \
-  /home/platform/project/cell_type_workspace/cell_type_workspace_api/workspace/module/write_gexf.py \
-  --visium_path "$outputdir/visium_data" \
-  --output_path "$outputdir"
-if [ $? -ne 0 ]; then
-    echo "Failed to run the write_gexf.py"
-    exit 1
-fi
+echo 'clustering done'
 
-# Call python script to generate cell_marker json
-#/data2/platform/cell_type_workspace/venv/bin/python3 \
-#  /home/platform/project/cell_type_workspace/cell_type_workspace_api/workspace/module/cell_marker.py \
-#  --gene_names_file "$outputdir/selected_genes.txt" \
-#  --output_path "$outputdir"
-#if [ $? -ne 0 ]; then
-#    echo "Failed to run the cell_marker.py"
-#    exit 1
-#fi
-
-echo 'processing done'
+source "$SCRIPT_DIR/cell_marker.sh" "$outputdir" "$species" "$tissue_class"

@@ -1,3 +1,5 @@
+import json
+
 import pandas as pd
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -61,18 +63,19 @@ class AKNOOModule(Module):
                              ContentFile(params['selected_genes']))
         self.script_arguments = [str(input_file_path), str(output_dir), params.get('species', 'Mouse'),
                                  params.get('tissue_class', 'Brain')]
-        self.shell_script = local_settings.WORKSPACE_MODULE / 'aknno.sh'
+        self.shell_script = local_settings.WORKSPACE_MODULE / 'aknno_clustering.sh'
 
-    def getresult(self, query_params):
-        result_type = query_params.get('resulttype')
-        result = None
-        if result_type == 'gexf':
-            with open(self.path / 'result/network.gexf', 'r') as f:
-                result = f.read()
-        elif result_type == 'cell_marker_heatmap':
-            with open(self.path / 'result/cell_marker_heatmap_options.json', 'r') as f:
-                result = f.read()
-        return {'results': {'type': result_type, 'data': result}}
+
+class CellMarkerModule(Module):
+    def __init__(self, name, path, params):
+        super().__init__(name, path)
+        output_dir = self.path / 'result/'
+        override_cluster_json_path = output_dir / 'override_cluster.json'
+        default_storage.save(override_cluster_json_path.relative_to(local_settings.USER_TASK_PATH),
+                             ContentFile(params['override_cluster_json']))
+        self.script_arguments = [str(output_dir), params.get('species', 'Mouse'), params.get('tissue_class', 'Brain'),
+                                 str(override_cluster_json_path)]
+        self.shell_script = local_settings.WORKSPACE_MODULE / 'cell_marker.sh'
 
 
 class Scquery(Module):
