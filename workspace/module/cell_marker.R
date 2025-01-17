@@ -20,6 +20,7 @@ library(RColorBrewer)
 library(readxl)
 library(dplyr)
 library(jsonlite)
+library(tibble)
 
 args              <- commandArgs(trailingOnly = TRUE)
 outputdir         <- args[1]
@@ -66,6 +67,7 @@ predefined_marker_cell_count <- predefined_markers %>%
 # For each cluster, calculate the echarts option data
 cluster_list <- unique(obj$aKNN_O_res.0.8)
 dir.create(file.path(outputdir, "echarts_data_heatmap"), showWarnings = FALSE)
+dir.create(file.path(outputdir, "marker_expression"), showWarnings = FALSE)
 for(i in seq_along(cluster_list)) {
   cluster <- cluster_list[i]
   cluster_markers <- all_markers %>% filter(cluster == !!cluster)
@@ -90,6 +92,17 @@ for(i in seq_along(cluster_list)) {
     summarise(cell_name_count = n()) %>%
     arrange(desc(cell_name_count)) %>%
     pull(marker)
+
+  # get expression data for each marker and write to separate files
+  for (marker in y_headers) {
+    # if marker output file exists, skip
+    json_path <- file.path(outputdir, "marker_expression", paste0(marker, ".json"))
+    if (file.exists(json_path) && file.size(json_path) > 0) {
+      next
+    }
+    marker_expression <- as.list(Seurat::GetAssayData(obj, slot = "data")[marker, ])
+    jsonlite::write_json(marker_expression, json_path, pretty = FALSE, auto_unbox = TRUE)
+  }
 
   # get data
   data <- lapply(seq_along(target_marker_genes_proportion$proportion), function(i) c(i-1, 0, target_marker_genes_proportion$proportion[i]))
