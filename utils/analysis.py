@@ -71,8 +71,10 @@ class CellMarkerModule(Module):
         super().__init__(name, path)
         output_dir = self.path / 'result/'
         override_cluster_json_path = output_dir / 'override_cluster.json'
+        if override_cluster_json_path.exists():
+            override_cluster_json_path.unlink()
         default_storage.save(override_cluster_json_path.relative_to(local_settings.USER_TASK_PATH),
-                             ContentFile(params['override_cluster_json']))
+                             ContentFile(json.dumps(params['nodeLabel2ClusterMap'])))
         self.script_arguments = [str(output_dir), params.get('species', 'Mouse'), params.get('tissue_class', 'Brain'),
                                  str(override_cluster_json_path)]
         self.shell_script = local_settings.WORKSPACE_MODULE / 'cell_marker.sh'

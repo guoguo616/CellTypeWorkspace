@@ -21,7 +21,7 @@ export PYTHONPATH=/data2/platform/cell_type_workspace/venv/lib/python3.9/site-pa
 
 # Check if the correct number of arguments are provided
 if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
-    echo "Usage: $0 outputdir species tissue_class [override_cluster_csv]"
+    echo "Usage: $0 outputdir species tissue_class [override_cluster_json]"
     exit 1
 fi
 
@@ -33,7 +33,7 @@ override_cluster_json=$4
 echo '######################## Finding Cell Marker ########################'
 echo 'running R script to find marker genes and python script to filter adata'
 Rscript /home/platform/project/cell_type_workspace/cell_type_workspace_api/workspace/module/cell_marker.R \
-    "$outputdir/aKNNO_clustered.rds" "$outputdir" "$species" "$tissue_class" $override_cluster_json
+    "$outputdir" "$species" "$tissue_class" "$override_cluster_json"
 if [ $? -ne 0 ]; then
     echo "Failed to run the aknno.R"
     exit 1

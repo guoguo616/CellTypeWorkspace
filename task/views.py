@@ -27,7 +27,7 @@ class taskViewSet(viewsets.ModelViewSet):
 @api_view(['GET'])
 def task_detail_view(request):
     userid = request.query_params.dict()['userid']
-    taskslist = Task.objects.filter(user=userid)
+    taskslist = Task.objects.filter(user=userid).order_by("-created_at")
     serializer = taskSerializer(taskslist, many=True)
     return Response({'results': serializer.data})
 
@@ -45,12 +45,18 @@ def createtask(request):
     - parameters
     """
     # create user task folder and save the file
-    user_task_dir = str(int(time.time())) + '_' + str(random.randint(1000, 9999))
+    user_task_dir = request.data.get('taskdir') or str(int(time.time())) + '_' + str(random.randint(1000, 9999))
     user_path = local_settings.USER_TASK_PATH / user_task_dir
     upload_file_path = user_path / 'upload/'
-    os.makedirs(upload_file_path, exist_ok=False)
-    file = request.FILES['submitfile']
-    default_storage.save((upload_file_path / 'input.zip').relative_to(local_settings.USER_TASK_PATH), ContentFile(file.read()))
+    if request.data.get('taskdir'):
+        if not os.path.exists(user_path):
+            raise ValueError('taskdir not exists')
+    else:
+        os.makedirs(upload_file_path, exist_ok=False)
+    file = request.FILES.get('submitfile')
+    if file:
+        default_storage.save((upload_file_path / 'input.zip').relative_to(local_settings.USER_TASK_PATH),
+                             ContentFile(file.read()))
 
     # get parameters from request
     parameters_string = request.data['parameters']

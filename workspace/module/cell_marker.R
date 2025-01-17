@@ -1,4 +1,5 @@
 .libPaths("/data2/platform/cell_type_workspace/RLibrary")
+source("/home/platform/project/cell_type_workspace/cell_type_workspace_api/workspace/module/util.R")
 
 install_if_missing <- function(package) {
   if (!require(package, character.only = TRUE)) {
@@ -27,7 +28,6 @@ tissue_class      <- args[3]
 override_cluster_json <- ifelse(length(args) > 3, args[4], NULL)
 
 # outputdir <- "/home/platform/project/cell_type_workspace/cell_type_workspace_api/workspace/user_data/1731495626_7121/result"
-# inputfile <- "/home/platform/project/cell_type_workspace/cell_type_workspace_api/workspace/user_data/1731495626_7121/result/visium_data"
 # species <- "Mouse"
 # tissue_class <- "Brain"
 
@@ -36,11 +36,17 @@ obj <- readRDS(file.path(outputdir, "aKNNO_clustered.rds"))
 
 if (!is.null(override_cluster_json)) {
   override_cluster_result <- jsonlite::fromJSON(override_cluster_json)
-  override_cluster_result <- as.data.frame(override_cluster_result)
-  rownames(override_cluster_result) <- override_cluster_result$barcodes
-  # merge the override cluster result to the object
-  obj <- Seurat::AddMetaData(obj, override_cluster_result, col.name = "aKNN_O_res.0.8")
-  obj <- Seurat::AddMetaData(obj, override_cluster_result, col.name = "seurat_clusters")
+  for (barcode in names(override_cluster_result)) {
+    obj$aKNN_O_res.0.8[barcode] <- override_cluster_result[barcode]
+    obj$seurat_clusters[barcode] <- override_cluster_result[barcode]
+  }
+  # If the override cluster json is provided, save the updated cluster result to update gexf
+  names(color_aknno) <- sort(as.integer(levels(obj$aKNN_O_res.0.8)))
+  cluster_result <- data.frame(
+    Cell_id = colnames(obj),
+    Cluster = obj$aKNN_O_res.0.8,
+    Color = color_aknno[as.character(obj$aKNN_O_res.0.8)])
+  write.csv(cluster_result, file.path(outputdir, "aKNNO_cluster_result.csv"), row.names = FALSE)
 }
 
 # Find markers

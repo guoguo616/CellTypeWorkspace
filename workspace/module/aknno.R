@@ -1,4 +1,5 @@
 .libPaths("/data2/platform/cell_type_workspace/RLibrary")
+source("/home/platform/project/cell_type_workspace/cell_type_workspace_api/workspace/module/util.R")
 
 install_if_missing <- function(package) {
   if (!require(package, character.only = TRUE)) {
@@ -19,7 +20,6 @@ if (!require("aKNNO", character.only = TRUE)) {
 }
 # library(Seurat)
 library(aKNNO)
-library(RColorBrewer)
 library(readxl)
 library(dplyr)
 
@@ -60,14 +60,7 @@ obj <- Seurat::FindClusters(obj, graph.name = "aKNN_O", verbose = FALSE)
 saveRDS(obj, file.path(outputdir, "aKNNO_clustered.rds"))
 # obj <- readRDS(file.path(outputdir, "aKNNO_clustered.rds"))
 # head(obj@meta.data)
-
-# define colors
-color_aknno <- c(brewer.pal(8, "Set2"), brewer.pal(12, "Set3"), brewer.pal(8, "Pastel2"),
-                 brewer.pal(8, "Accent"))[-c(6, 8, 10, 17, 20)]
-color_aknno[c(22, 26, 27, 31, 28, 23)] <- c("#2171b5", "#FF7F00", "#238b45", "#E41A1C", "#dd3497", "#984EA3")
-color_aknno[c(3, 12, 11, 24, 2, 30)] <- c(color_aknno[c(11, 3)], "#6a51a3", "#cc4c02", "#E6AB02", "#525252")
 names(color_aknno) <- sort(as.integer(levels(obj$aKNN_O_res.0.8)))
-
 p_aKNNO <- SpatialDimPlot(obj, group.by = "aKNN_O_res.0.8", cols = color_aknno) +
   ggtitle("aKNNO") +
   NoLegend()
