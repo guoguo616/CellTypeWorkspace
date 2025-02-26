@@ -17,8 +17,9 @@ def read_visium(visium_path: Path) -> AnnData:
     return adata
 
 
-def read_aknno_cluster_result(adata: AnnData, cluster_file_path: Path) -> None:
-    cluster_result = pd.read_csv(cluster_file_path / "aKNNO_cluster_result.csv", header=0, index_col=0)
+def read_aknno_cluster_result(adata: AnnData, cluster_file_path: Path, is_overridden: bool) -> None:
+    file_name = f"aKNNO_cluster_result{'_overridden' if is_overridden else ''}.csv"
+    cluster_result = pd.read_csv(cluster_file_path / file_name, header=0, index_col=0)
     adata.obs['cluster'] = cluster_result['Cluster']
     adata.obs['color'] = cluster_result['Color']
 
@@ -34,7 +35,7 @@ def calc_connectivity(adata: AnnData, filter_by_corr: bool) -> None:
         adata.obsp['spatial_corr_distances'] = adata.obsp['corr_distances'].multiply(mask)
 
 
-def create_network(adata: AnnData, cluster_obs_name: str, connectivities_key: str, output_dir: Path) -> nx.Graph:
+def create_network(adata: AnnData, cluster_obs_name: str, connectivities_key: str, output_dir: Path, is_overridden:bool) -> nx.Graph:
     nx_graph: nx.Graph = nx.Graph(adata.obsp[connectivities_key])
     cell_coord_dict = {idx: (int(row[0]), int(-row[1])) for idx, row in enumerate(adata.obsm['spatial'])}
 
@@ -54,7 +55,8 @@ def create_network(adata: AnnData, cluster_obs_name: str, connectivities_key: st
     nx.set_node_attributes(nx_graph, color_dict, 'color')
 
     nx.draw(nx_graph, node_size=1, pos=cell_coord_dict)
-    plt.savefig(output_dir / 'network_spatial.png')
+    file_name = f"network_spatial{'_overridden' if is_overridden else ''}.png"
+    plt.savefig(output_dir / file_name)
     plt.close()
 
     return nx_graph
@@ -83,17 +85,20 @@ def write_gexf(graph_obj: nx.Graph, adata: AnnData, cluster_obs_name: str, file_
     writer.write(file_path)
 
 
-def main(visium_path, output_path):
+def main(visium_path, output_path, is_overridden):
     print('Reading visium')
     adata = read_visium(visium_path)
     print('Reading cluster result')
-    read_aknno_cluster_result(adata, output_path)
+    read_aknno_cluster_result(adata, output_path, is_overridden)
     print('Calculating connectivity')
     calc_connectivity(adata, False)
+    print('Saving adata')
+    adata.write(output_path / 'adata.h5ad')
     print('Creating network')
-    graph_obj = create_network(adata, 'cluster', 'spatial_connectivities', output_path)
+    graph_obj = create_network(adata, 'cluster', 'spatial_connectivities', output_path, is_overridden)
     print('Writing gexf')
-    write_gexf(graph_obj, adata, 'cluster', output_path / 'network.gexf')
+    file_name = f"network{'_overridden' if is_overridden else ''}.gexf"
+    write_gexf(graph_obj, adata, 'cluster', output_path / file_name)
     print('Done')
 
 
@@ -102,10 +107,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--visium_path', help='Visium path', required=True)
     parser.add_argument('--output_path', help='Output path', required=True)
+    parser.add_argument('--is_overridden', help='Overridden', required=False)
     args = parser.parse_args()
 
     visium_path = Path(args.visium_path)
     assert visium_path.exists()
     output_path = Path(args.output_path)
     assert output_path.exists()
-    main(visium_path, output_path)
+    is_overridden = args.is_overridden and args.is_overridden.lower() == 'true'
+    main(visium_path, output_path, is_overridden)

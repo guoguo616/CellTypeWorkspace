@@ -44,7 +44,8 @@ echo '######################## Generating gexf ########################'
 /data2/platform/cell_type_workspace/venv/bin/python3 \
     /home/platform/project/cell_type_workspace/cell_type_workspace_api/workspace/module/write_gexf.py \
     --visium_path "$outputdir/visium_data" \
-    --output_path "$outputdir"
+    --output_path "$outputdir" \
+    --is_overridden "$(if [ -n "$override_cluster_json" ]; then echo 'True'; else echo 'False'; fi)"
 if [ $? -ne 0 ]; then
     echo "Failed to run the write_gexf.py"
     exit 1

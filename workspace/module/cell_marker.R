@@ -16,7 +16,6 @@ install_if_missing <- function(package) {
 # devtools::install_github('immunogenomics/presto')
 
 library(Seurat)
-library(RColorBrewer)
 library(readxl)
 library(dplyr)
 library(jsonlite)
@@ -28,9 +27,10 @@ species           <- args[2]
 tissue_class      <- args[3]
 override_cluster_json <- ifelse(length(args) > 3, args[4], NULL)
 
-# outputdir <- "/home/platform/project/cell_type_workspace/cell_type_workspace_api/workspace/user_data/1731495626_7121/result"
+# outputdir <- "/home/platform/project/cell_type_workspace/cell_type_workspace_api/workspace/user_data/1734203196_5900/result"
 # species <- "Mouse"
 # tissue_class <- "Brain"
+# override_cluster_json <- "/home/platform/project/cell_type_workspace/cell_type_workspace_api/workspace/user_data/1734203196_5900/result/override_cluster.json"
 
 obj <- readRDS(file.path(outputdir, "aKNNO_clustered.rds"))
 # head(obj@meta.data)
@@ -47,13 +47,14 @@ if (!is.null(override_cluster_json)) {
     Cell_id = colnames(obj),
     Cluster = obj$aKNN_O_res.0.8,
     Color = color_aknno[as.character(obj$aKNN_O_res.0.8)])
-  write.csv(cluster_result, file.path(outputdir, "aKNNO_cluster_result.csv"), row.names = FALSE)
+  write.csv(cluster_result, file.path(outputdir, "aKNNO_cluster_result_overridden.csv"), row.names = FALSE)
 }
 
 # Find markers
 Idents(obj) <- "aKNN_O_res.0.8"
-all_markers <- Seurat::FindAllMarkers(object = obj, logfc.threshold = 1, min.pct=0.25, only.pos = TRUE)
-all_markers <- all_markers %>% filter(p_val_adj < 0.01)
+min_pct_threshold <- 0.75
+all_markers <- Seurat::FindAllMarkers(object = obj, logfc.threshold = 1, min.pct=min_pct_threshold, only.pos = TRUE, return.thresh=0.01)
+all_markers <- all_markers %>% filter(pct.1 >= min_pct_threshold)
 write.csv(all_markers, file.path(outputdir, "marker_genes.csv"), row.names = FALSE)
 # all_markers <- read.csv(file.path(outputdir, "marker_genes.csv"))
 
@@ -82,7 +83,7 @@ for(i in seq_along(cluster_list)) {
   target_marker_genes_proportion <- filtered_predefined_markers_cell_count %>%
     left_join(predefined_marker_cell_count, by = "cell_name", suffix = c("_target", "_total")) %>%
     mutate(proportion = marker_count_target / marker_count_total) %>%
-    arrange(desc(proportion)) %>%
+    arrange(desc(marker_count_target)) %>%
     filter(!is.na(proportion))
 
   # Calculate Echarts data
