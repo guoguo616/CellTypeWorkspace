@@ -12,3 +12,4 @@ scanpy
 squidpy
 anndata
 openpyxl
+commot
