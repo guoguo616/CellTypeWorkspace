@@ -191,19 +191,38 @@ def main(adata_path, output_path, species):
         cluster_center(adata, clustering='cluster')
         adata.write(output_path / "adata_spatial_comm.h5ad")
 
-    # Plot the cell communication on the spatial grid.
+    # Sender
     ct.pl.plot_cell_communication(
-        adata, database_name='cellchat', plot_method='grid', background_legend=True,
-        scale=0.00003, ndsize=8, grid_density=0.4, summary='sender', background='image', clustering='cluster',
-        cmap='Alphabet', normalize_v=True, normalize_v_quantile=0.995,
-        filename=output_path / 'cell_communication_sender_plot.png')
+        adata, database_name='cellchat', plot_method='cell', background_legend=True,
+        scale=0.003, ndsize=8, grid_density=0.4, summary='sender', background='image', clustering='cluster',
+        cmap='Alphabet', normalize_v=True, normalize_v_quantile=0.995, arrow_color=adata.obs['color'])
+    plt.gca().invert_yaxis()
+    plt.savefig(output_path / 'cell_communication_sender_cell_plot.svg', format='svg')
     plt.close()
     ct.pl.plot_cell_communication(
         adata, database_name='cellchat', plot_method='stream', background_legend=True,
-        scale=0.00003, ndsize=8, grid_density=0.4, summary='receiver', background='image', clustering='cluster',
-        cmap='Alphabet', normalize_v=True, normalize_v_quantile=0.995,
-        filename=output_path / 'cell_communication_receiver_plot.png')
+        scale=0.003, ndsize=8, grid_density=0.4, summary='sender', background='image', clustering='cluster',
+        cmap='Alphabet', normalize_v=True, normalize_v_quantile=0.995)
+    plt.gca().invert_yaxis()
+    plt.savefig(output_path / 'cell_communication_sender_stream_plot.svg', format='svg')
     plt.close()
+
+    # Receiver
+    ct.pl.plot_cell_communication(
+        adata, database_name='cellchat', plot_method='cell', background_legend=True,
+        scale=0.003, ndsize=8, grid_density=0.4, summary='receiver', background='image', clustering='cluster',
+        cmap='Alphabet', normalize_v=True, normalize_v_quantile=0.995, arrow_color=adata.obs['color'])
+    plt.gca().invert_yaxis()
+    plt.savefig(output_path / 'cell_communication_receiver_cell_plot.svg', format='svg')
+    plt.close()
+    ct.pl.plot_cell_communication(
+        adata, database_name='cellchat', plot_method='stream', background_legend=True,
+        scale=0.003, ndsize=8, grid_density=0.4, summary='receiver', background='image', clustering='cluster',
+        cmap='Alphabet', normalize_v=True, normalize_v_quantile=0.995)
+    plt.gca().invert_yaxis()
+    plt.savefig(output_path / 'cell_communication_receiver_stream_plot.svg', format='svg')
+    plt.close()
+
     cell_communication_plot_sender_json = extract_cell_comm_grid_data(adata, 'cellchat', 'sender')
     with open(output_path / 'cell_communication_plot_sender.json', 'w') as f:
         json.dump(cell_communication_plot_sender_json, f)

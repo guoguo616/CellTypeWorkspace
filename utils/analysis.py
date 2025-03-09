@@ -80,6 +80,14 @@ class CellMarkerModule(Module):
         self.shell_script = local_settings.WORKSPACE_MODULE / 'cell_marker.sh'
 
 
+class CciModule(Module):
+    def __init__(self, name, path, params):
+        super().__init__(name, path)
+        output_dir = self.path / 'result/'
+        self.script_arguments = [str(output_dir), params.get('species', 'Mouse')]
+        self.shell_script = local_settings.WORKSPACE_MODULE / 'cci.sh'
+
+
 class Scquery(Module):
     def __init__(self, name, path, params):
         super().__init__(name, path)
